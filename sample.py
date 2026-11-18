@@ -24,7 +24,7 @@ def generate(model, idx, max_new_tokens, temperature=1.0, top_k=None, top_p=None
 
         # 如果kv_cache is None, idx_cond = idx
         # 如果kc_cache is not None, idx的最后一个token传给idx_cond(形状[B,1])
-        idx_cond = idx if kv_cache is None else idx[:, -1]
+        idx_cond = idx if kv_cache is None else idx[:, -1:]
 
         # 前向传播，得到logits(形状[B,T,vocab_size])和更新后的kc_cache
         logits, kv_cache = model(idx_cond, kv_cache, pos=pos)
@@ -40,7 +40,16 @@ def generate(model, idx, max_new_tokens, temperature=1.0, top_k=None, top_p=None
             logits[logits < v[:, [-1]]] = -float("-inf")
 
         if top_p is not None:
-            1
+            sorted_logits, sorted_idx = torch.sort(logits, descending=True)
+            sorted_probs = F.softmax(sorted_logits, dim=-1)
+            cumprobs = torch.cumsum(sorted_probs, dim=-1)
+            to_remove = cumprobs > top_p
+            to_remove[..., 1:] = to_remove[..., :-1].clone()
+            to_remove[..., 0] = 0
+            # 把"是否移除"按原下标散射回去
+            remove_mask = torch.zeros_like(logits, dtype=torch.bool)
+            remove_mask.scatter_(1, sorted_idx, to_remove)
+            logits[remove_mask] = -float("inf")
 
         # F.softmax() 对logits的最后一个维度进行softmax
         probs = F.softmax(logits, dim=-1)
