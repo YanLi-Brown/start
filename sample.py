@@ -1,6 +1,12 @@
 import torch
 import torch.nn.functional as F
 
+# git
+# !git status                 查看状态
+# !git add .                  增加提交到缓冲区
+# !git commit -m "add files"  缓存区内容提交
+# !gitpush                    网络上传
+
 
 @torch.no_grad()
 # 装饰器，修饰下面的函数 在函数执行期间关闭梯度梯度计算
