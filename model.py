@@ -112,17 +112,23 @@ class MLP(nn.Module):
 
 
 class Block(nn.Module):
+    # 重复单元，组装了注意力层，MLP，归一化和残差连接层
     def __init__(self, config):
         super().__init__()
+        # nn.LayerNorm() 对768维向量进行归一化
         self.ln_1 = nn.LayerNorm(config.n_embd)
+        # 自注意力层
         self.attn = CausalSelfAttention(config)
+        # nn.LayerNorm() 归一化
         self.ln_2 = nn.LayerNorm(config.n_embd)
         self.mlp = MLP(config)
 
     def forward(self, x, kv_cache=None, pos=0):
-        # pre-LayerNorm + 残差连接
+        # 输入先归一化，再进入自注意力层
         a, kv_cache = self.attn(self.ln_1(x), kv_cache, pos)
+        # 第一个残差连接
         x = x + a
+        # self.mlp() 经过MLP层，再进行第2次残差连接
         x = x + self.mlp(self.ln_2(x))
         return x, kv_cache
 
